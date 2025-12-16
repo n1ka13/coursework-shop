@@ -1,0 +1,165 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model address {
+  address_id  Int      @id @default(autoincrement())
+  country     String   @db.VarChar(32)
+  city        String   @db.VarChar(32)
+  street      String   @db.VarChar(32)
+  postal_code String   @db.VarChar(32)
+  client_id   Int
+  client      client   @relation(fields: [client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction)
+  orders      orders[]
+}
+
+model category {
+  category_id   Int       @id @default(autoincrement())
+  category_name String    @db.VarChar(32)
+  description   String    @db.VarChar(255)
+  product       product[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model client {
+  client_id    Int       @id @default(autoincrement())
+  client_name  String    @db.VarChar(32)
+  last_name    String    @db.VarChar(32)
+  email        String    @db.VarChar(32)
+  phone_number String?   @db.VarChar(20)
+  address      address[]
+  orders       orders[]
+  wishlist Wishlist[]
+  birthday DateTime?
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model order_item {
+  order_item_id Int     @id @default(autoincrement())
+  quantity      Int
+  order_id      Int
+  product_id    Int
+  orders        orders  @relation(fields: [order_id], references: [order_id], onDelete: NoAction, onUpdate: NoAction)
+  product       product @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([order_id, product_id], map: "unique_order_item")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model orders {
+  order_id    Int          @id @default(autoincrement())
+  order_date  DateTime     @default(dbgenerated("CURRENT_DATE")) @db.Date
+  order_price Int
+  status      status_name
+  discount    Int?
+  client_id   Int
+  address_id  Int
+  worker_id   Int
+  order_item  order_item[]
+  address     address      @relation(fields: [address_id], references: [address_id], onDelete: NoAction, onUpdate: NoAction)
+  client      client       @relation(fields: [client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction)
+  worker      worker       @relation(fields: [worker_id], references: [worker_id], onDelete: NoAction, onUpdate: NoAction)
+  payment     payment[]
+  shipment    shipment[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model payment {
+  payment_id     Int                 @id @default(autoincrement())
+  payment_date   DateTime            @default(now()) @db.Timestamptz(6)
+  payment_method methods
+  payment_status payment_status_name
+  price          Decimal             @db.Decimal(10, 2)
+  order_id       Int
+  orders         orders              @relation(fields: [order_id], references: [order_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model product {
+  product_id   Int               @id @default(autoincrement())
+  product_name String
+  price        Int
+  quantity     Int
+  description  String            @db.VarChar(255)
+  stock_status stock_status_name
+  image_url    String?
+  category_id  Int
+  order_item   order_item[]
+  wishlist Wishlist[]
+  deletedAt    DateTime?
+  category     category          @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model shipment {
+  shipment_id      Int       @id @default(autoincrement())
+  carrier          String?
+  tracking_number  String?   @unique
+  shipment_status  String    @default("processing") @db.VarChar(50)
+  shipping_date    DateTime? @db.Date
+  delivery_address String
+  order_id         Int
+  worker_id        Int?
+  orders           orders    @relation(fields: [order_id], references: [order_id], onDelete: NoAction, onUpdate: NoAction)
+  worker           worker?   @relation(fields: [worker_id], references: [worker_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model worker {
+  worker_id    Int        @id @default(autoincrement())
+  worker_role  role_name
+  first_name   String     @db.VarChar(32)
+  last_name    String     @db.VarChar(32)
+  phone_number String?    @unique @db.VarChar(13)
+  orders       orders[]
+  shipment     shipment[]
+}
+
+enum methods {
+  by_card             @map("by card")
+  online
+  by_cash_on_delivery @map("by cash on delivery")
+}
+
+enum payment_status_name {
+  paid
+  not_paid @map("not paid")
+}
+
+enum role_name {
+  admin
+  courier
+  operator
+  manager
+}
+
+enum status_name {
+  confirmed
+  processing
+  shipped
+  delivered
+  cancelled
+  refunded
+}
+
+enum stock_status_name {
+  in_stock     @map("in stock")
+  out_of_stock @map("out of stock")
+  coming_soon  @map("coming soon")
+}
+
+model Wishlist {
+  id         Int      @id @default(autoincrement())
+  addedAt    DateTime @default(now())
+
+  client     client   @relation(fields: [client_id], references: [client_id])
+  client_id  Int
+  product    product  @relation(fields: [product_id], references: [product_id])
+  product_id Int
+
+  @@unique([client_id, product_id])
+}
