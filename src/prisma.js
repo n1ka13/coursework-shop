@@ -1,6 +1,18 @@
-import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
+const { PrismaClient } = require('@prisma/client');
+const path = require('path');
 
-const prisma = new PrismaClient();
+if (process.env.NODE_ENV === 'test') {
+    require('dotenv').config({ path: path.resolve(__dirname, '../.env.test') });
+} else {
+    require('dotenv').config();
+}
 
-export default prisma;
+const prisma = new PrismaClient({
+    datasources: {
+        db: {
+            url: process.env.DATABASE_URL,
+        },
+    },
+});
+
+module.exports = prisma;

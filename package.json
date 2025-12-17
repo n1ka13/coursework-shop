@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_ENV=test jest --verbose --runInBand --detectOpenHandles",
+    "test": "NODE_ENV=test jest --verbose --runInBand",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js"
   },
@@ -24,12 +24,11 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
-    "prisma": "6.10.0",
     "@prisma/client": "6.10.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "prisma": "6.10.0",
     "psql": "^0.0.1"
   },
   "devDependencies": {
