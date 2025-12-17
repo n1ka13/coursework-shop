@@ -3,61 +3,102 @@ const prisma = require("../prisma");
 const crud = require("../repositories/crud");
 const analyticsRepo = require("../repositories/analytics");
 
-exports.createOrderWithTransaction = async ({ product_id, quantity, client_id, address_id, worker_id, discount = 0 }) => {
-    try {
-        return await prisma.$transaction(async (tx) => {
-            const product = await crud.getOne("product", { product_id: product_id }, tx);
-            
-            if (!product) {
-                throw new MyError(`Товар з ID ${product_id} не знайдено`, 404);
-            }
+exports.createOrderWithTransaction = async ({
+  clientId,
+  addressId,
+  workerId,
+  discount = 0,
+  items
+}) => {
+  try {
+    return await prisma.$transaction(async (tx) => {
 
-            if (product.quantity < quantity) {
-                throw new MyError(`Недостатньо товару ${product.product_name}. В наявності: ${product.quantity}`, 400);
-            }
+      let totalPrice = 0;
 
-            const new_qty = product.quantity - quantity;
-            await crud.update("product", 
-                { product_id: product_id }, 
-                { 
-                    quantity: new_qty,
-                    stock_status: new_qty > 0 ? 'in_stock' : 'out_of_stock'
-                }, 
-                tx
-            );
+      for (const item of items) {
+        const product = await crud.getOne(
+          "product",
+          { product_id: item.productId },
+          tx
+        );
 
-            const base_price = product.price * quantity;
-            const order_price = discount > 0 ? Math.round(base_price * (1 - discount / 100)) : base_price;
+        if (!product) {
+          throw new MyError(`Товар з ID ${item.productId} не знайдено`, 404);
+        }
 
-            const new_order = await crud.create("orders", {
-                client_id: client_id,
-                address_id: address_id,
-                worker_id: worker_id,
-                order_price: order_price,
-                status: 'confirmed',
-                discount: discount,
-                order_item: {
-                    create: [{
-                        product_id: product_id,
-                        quantity: quantity
-                    }]
-                }
-            }, tx);
+        if (product.quantity < item.quantity) {
+          throw new InsufficientStockError(
+            `Недостатньо товару ${product.product_name}`
+          );
+        }
 
-            await crud.create("payment", {
-                order_id: new_order.order_id,
-                payment_method: 'online', 
-                payment_status: 'paid',
-                price: order_price
-            }, tx);
+        await crud.update(
+          "product",
+          { product_id: item.productId },
+          {
+            quantity: product.quantity - item.quantity,
+            stock_status:
+              product.quantity - item.quantity > 0
+                ? "in_stock"
+                : "out_of_stock",
+          },
+          tx
+        );
 
-            return new_order;
-        });
-    } catch (error) {
-        if (error instanceof MyError) throw error;
-        throw new MyError("Помилка транзакції: " + error.message, 500);
+        totalPrice += product.price * item.quantity;
+      }
+
+      if (discount > 0) {
+        totalPrice = Math.round(totalPrice * (1 - discount / 100));
+      }
+
+      const order = await crud.create(
+  "orders",
+  {
+    client_id: clientId,
+    address_id: addressId,
+    worker_id: workerId,
+    order_price: totalPrice,
+    discount,
+    status: "confirmed",
+    order_item: {
+      create: items.map(item => ({
+        product_id: item.productId,
+        quantity: item.quantity
+      }))
     }
+  },
+  tx
+);
+
+await crud.create(
+  "payment",
+  {
+    order_id: order.order_id,
+    payment_method: "online",
+    payment_status: "paid",
+    price: totalPrice
+  },
+  tx
+);
+
+return await tx.orders.findUnique({
+  where: { order_id: order.order_id },
+  include: {
+    order_item: true,
+    payment: true
+  }
+});
+
+    });
+  } catch (error) {
+    if (error instanceof InsufficientStockError) throw error;
+    if (error instanceof MyError) throw error;
+
+    throw new MyError("Помилка транзакції: " + error.message, 500);
+  }
 };
+
 
 exports.getOrderDateLimits = async () => {
     const result = await analyticsRepo.getFirstAndLastOrderDate();
