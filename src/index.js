@@ -3,12 +3,12 @@ const express = require('express');
 const prisma = require('./prisma.js');
 const dotenv = require('dotenv');
 
-const orderRoutes = require('./routes/orderRoutes.js');
+const orderRoutes = require('./routes/OrderRoutes.js');
 const productRoutes = require('./routes/productRoutes.js');
 const workerRoutes = require('./routes/workerRoutes.js');
 const clientRoutes = require('./routes/clientRoutes.js');
 
-const errorHandler = require('./middleware/errorHandler.js');
+const errorHandler = require('../middleware/errorHandler.js');
 
 dotenv.config();
 const app = express();

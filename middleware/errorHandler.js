@@ -1,4 +1,4 @@
-const MyError = require("./services/myError");
+const MyError = require("./myError");
 
 const errorHandler = (err, req, res, next) => {
     if (err instanceof MyError) {

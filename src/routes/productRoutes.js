@@ -10,4 +10,8 @@ router.get('/analytics/avg-prices', productController.getAvgPrices);
 
 router.get('/analytics/premium', productController.getPremiumProducts);
 
+router.delete("/:id", productController.softDeleteProduct);
+
+router.patch("/:id/restore", productController.restoreProduct);
+
 module.exports = router;

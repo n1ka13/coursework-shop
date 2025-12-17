@@ -1,6 +1,6 @@
 const MyError = require("../../middleware/myError");
 const crud = require("../repositories/crud");
-const analyticsRepo = require("../repositories/AnalyticsRepository");
+const analyticsRepo = require("../repositories/analytics");
 
 exports.createClient = async (data) => {
     const client = await crud.create("client", data);

@@ -42,7 +42,8 @@ export const getNeverOrderedProducts = async () =>
         FROM product p
         LEFT JOIN order_item oi ON p.product_id = oi.product_id
         WHERE 
-            oi.order_item_id IS NULL;
+            oi.order_item_id IS NULL
+            AND p."deletedAt" IS NULL;
     `);
 
 export const getAveragePriceByCategory = async () =>
@@ -52,6 +53,7 @@ export const getAveragePriceByCategory = async () =>
             AVG(p.price) AS average_price
         FROM product p 
         JOIN category c ON p.category_id = c.category_id
+        WHERE p."deletedAt" IS NULL
         GROUP BY 
             c.category_name;
     `);
@@ -110,4 +112,15 @@ export const getWorkerClientCrossJoin = async () =>
             c.client_name
         FROM worker w
         CROSS JOIN client c;
+    `);
+
+export const getRevenueDynamics = async () =>
+    await prisma.$queryRaw(Prisma.sql`
+        SELECT 
+            order_date,
+            SUM(order_price) as daily_revenue,
+            SUM(SUM(order_price)) OVER (ORDER BY order_date) as cumulative_revenue
+        FROM orders
+        GROUP BY order_date
+        ORDER BY order_date;
     `);

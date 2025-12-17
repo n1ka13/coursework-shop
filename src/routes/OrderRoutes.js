@@ -8,4 +8,6 @@ router.get('/analytics/dates', orderController.getOrderDates);
 
 router.get('/analytics/revenue', orderController.getRevenueAnalytics);
 
+router.get('/analytics/revenue-dynamics', orderController.getRevenueDynamics);
+
 module.exports = router;

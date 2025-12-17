@@ -43,3 +43,12 @@ exports.getRevenueAnalytics = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.getRevenueDynamics = async (req, res, next) => {
+    try {
+        const dynamics = await orderService.getRevenueDynamics();
+        res.status(200).json(dynamics);
+    } catch (error) {
+        next(error);
+    }
+};

@@ -1,11 +1,20 @@
 const MyError = require("../../middleware/myError");
 const crud = require("../repositories/crud");
-const analyticsRepo = require("../repositories/AnalyticsRepository");
+const analyticsRepo = require("../repositories/analytics");
 
 exports.getProduct = async (id) => {
-    const product = await crud.getOne("product", { product_id: Number(id) });
-    if (!product) throw new MyError("Product not found", 404);
-    return product;
+    const products = await crud.getAll("product", { 
+        where: { 
+            product_id: Number(id), 
+            deletedAt: null
+        } 
+    });
+
+    if (!products || products.length === 0) {
+        throw new MyError("Product not found or has been deleted", 404);
+    }
+
+    return products[0];
 };
 exports.getProductsCountByCategory = async () => {
     const result = await analyticsRepo.countProductsByCategory();
@@ -41,4 +50,20 @@ exports.getElectronics = async () => {
     const result = await analyticsRepo.getProductsFromElectronics();
     if (!result || result.length === 0) throw new MyError("No electronics found", 404);
     return result;
+};
+
+exports.softDeleteProduct = async (id) => {
+    return await crud.update(
+        "product", 
+        { product_id: Number(id) }, 
+        { deletedAt: new Date() }
+    );
+};
+
+exports.restoreProduct = async (id) => {
+    return await crud.update(
+        "product", 
+        { product_id: Number(id) }, 
+        { deletedAt: null }
+    );
 };

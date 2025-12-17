@@ -66,6 +66,7 @@ model orders {
   worker      worker       @relation(fields: [worker_id], references: [worker_id], onDelete: NoAction, onUpdate: NoAction)
   payment     payment[]
   shipment    shipment[]
+  @@index([client_id])
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.

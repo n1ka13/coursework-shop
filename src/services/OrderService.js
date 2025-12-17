@@ -118,3 +118,15 @@ exports.getRevenueStats = async () => {
         revenue: parseFloat(row.revenue).toFixed(2)
     }));
 };
+
+exports.getRevenueDynamics = async () => {
+    const result = await analyticsRepo.getRevenueDynamics();
+    if (!result || result.length === 0) {
+        throw new MyError("Дані про виручку не знайдені", 404);
+    }
+    return result.map(row => ({
+        date: row.order_date,
+        daily: Number(row.daily_revenue),
+        cumulative: Number(row.cumulative_revenue)
+    }));
+};
