@@ -11,10 +11,10 @@ describe('Тестування отримання товару', () => {
 
     test('Має повернути правильний товар за його ID', async () => {
         const category = await prisma.category.create({
-            data: { category_name: 'Електроніка',
+            data: { 
                 category_name: 'Електроніка',
-                description: 'Опис для тесту',
-             }
+                description: 'Опис для тесту'
+            }
         });
 
         const createdProduct = await prisma.product.create({
@@ -31,12 +31,17 @@ describe('Тестування отримання товару', () => {
         const result = await getProduct(createdProduct.product_id);
 
         expect(result).toBeDefined();
-
         expect(result.product_id).toBe(createdProduct.product_id);
-
         expect(result.product_name).toBe('Смартфон');
-
         expect(result.price).toBe(500);
+    });
+
+    test('Має викинути помилку 404, якщо товару з таким ID не існує', async () => {
+        const nonExistentId = 99999;
+
+        await expect(getProduct(nonExistentId))
+            .rejects
+            .toThrow("Product not found or has been deleted");
     });
 
     afterAll(async () => {

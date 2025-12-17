@@ -35,6 +35,7 @@ model client {
   address      address[]
   orders       orders[]
   wishlist Wishlist[]
+  reviews      review[]
   birthday DateTime?
 }
 
@@ -93,6 +94,7 @@ model product {
   order_item   order_item[]
   wishlist Wishlist[]
   deletedAt    DateTime?
+  reviews      review[]
   category     category          @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction)
 }
 
@@ -163,4 +165,17 @@ model Wishlist {
   product_id Int
 
   @@unique([client_id, product_id])
+}
+
+model review {
+  review_id   Int      @id @default(autoincrement())
+  rating      Int      
+  comment     String?  @db.VarChar(500)
+  createdAt   DateTime @default(now())
+  
+  client_id   Int
+  product_id  Int
+  
+  client      client   @relation(fields: [client_id], references: [client_id])
+  product     product  @relation(fields: [product_id], references: [product_id])
 }
