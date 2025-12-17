@@ -1,8 +1,11 @@
-import { Router } from 'express';
-import { createOrderController } from '../controllers/OrderController.js';
+const express = require('express');
+const router = express.Router();
+const orderController = require('../controllers/OrderController');
 
-const router = Router();
+router.post('/', orderController.createOrder);
 
-router.post('/orders', createOrderController);
+router.get('/analytics/dates', orderController.getOrderDates);
 
-export default router;
+router.get('/analytics/revenue', orderController.getRevenueAnalytics);
+
+module.exports = router;

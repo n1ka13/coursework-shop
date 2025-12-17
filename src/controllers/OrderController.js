@@ -1,12 +1,12 @@
 const orderService = require("../services/OrderService");
-const MyError = require("../services/myError");
 
-exports.createOrder = async (req, res) => {
+exports.createOrder = async (req, res, next) => {
     try {
         const { productId, quantity, clientId, addressId, workerId } = req.body;
 
         if (!productId || !quantity || !clientId || !addressId || !workerId) {
-            throw new MyError("Missing required fields: productId, quantity, clientId, addressId, workerId", 400);
+            const MyError = require("../middleware/myError"); // Імпорт для створення помилки
+            throw new MyError("Missing required fields", 400);
         }
 
         const newOrder = await orderService.createOrderWithTransaction(
@@ -22,33 +22,24 @@ exports.createOrder = async (req, res) => {
             data: newOrder
         });
     } catch (error) {
-        if (error instanceof MyError) {
-            return res.status(error.status).json({ error: error.message });
-        }
-        res.status(500).json({ error: "Internal Server Error", details: error.message });
+        next(error);
     }
 };
 
-exports.getOrderDates = async (req, res) => {
+exports.getOrderDates = async (req, res, next) => {
     try {
         const dates = await orderService.getOrderDateLimits();
         res.json(dates);
     } catch (error) {
-        if (error instanceof MyError) {
-            return res.status(error.status).json({ error: error.message });
-        }
-        res.status(500).json({ error: "Internal Server Error" });
+        next(error);
     }
 };
 
-exports.getRevenueAnalytics = async (req, res) => {
+exports.getRevenueAnalytics = async (req, res, next) => {
     try {
         const stats = await orderService.getRevenueStats();
         res.json(stats);
     } catch (error) {
-        if (error instanceof MyError) {
-            return res.status(error.status).json({ error: error.message });
-        }
-        res.status(500).json({ error: "Internal Server Error" });
+        next(error);
     }
 };

@@ -1,4 +1,4 @@
-const MyError = require("./myError");
+const MyError = require("../../middleware/myError");
 const prisma = require("../prisma/client");
 const crud = require("../repositories/crud");
 const analyticsRepo = require("../repositories/AnalyticsRepository");

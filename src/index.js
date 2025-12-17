@@ -1,7 +1,14 @@
-import './env.js'; 
-import express from 'express';
-import prisma from './prisma.js';
-import orderRoutes from './routes/orderRoutes.js';
+require('./env.js'); 
+const express = require('express');
+const prisma = require('./prisma.js');
+const dotenv = require('dotenv');
+
+const orderRoutes = require('./routes/orderRoutes.js');
+const productRoutes = require('./routes/productRoutes.js');
+const workerRoutes = require('./routes/workerRoutes.js');
+const clientRoutes = require('./routes/clientRoutes.js');
+
+const errorHandler = require('./middleware/errorHandler.js');
 
 dotenv.config();
 const app = express();
@@ -9,7 +16,12 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json()); 
 
-app.use('/api', orderRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/workers', workerRoutes);
+app.use('/api/clients', clientRoutes);
+
+app.use(errorHandler);
 
 async function startServer() {
     try {
