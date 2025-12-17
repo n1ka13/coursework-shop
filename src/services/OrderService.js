@@ -1,83 +1,76 @@
-import prisma from '../prisma.js';
+const MyError = require("./myError");
+const prisma = require("../prisma/client");
+const crud = require("../repositories/crud");
+const analyticsRepo = require("../repositories/AnalyticsRepository");
 
-export class InsufficientStockError extends Error {
-    constructor(productName, available, requested) {
-        super(`Недостатньо запасу для товару ${productName}. Доступно: ${available}, Запитано: ${requested}`);
-        this.name = 'InsufficientStockError';
-        this.available = available;
-        this.requested = requested;
-    }
-}
-export async function createOrderWithTransaction(orderData) {
-    const { clientId, addressId, workerId, items, discount = 0 } = orderData;
-    
-    return prisma.$transaction(async (tx) => {
-        let totalOrderPrice = 0;
-        
-        for (const item of items) {
-            const product = await tx.product.findUnique({
-                where: { product_id: item.productId },
-            });
-
-            if (!product) {
-                throw new Error(`Товар з ID ${item.productId} не знайдено.`);
-            }
-            if (product.quantity < item.quantity) {
-                throw new InsufficientStockError(product.product_name, product.quantity, item.quantity);
-            }
+exports.createOrderWithTransaction = async (productId, quantity, clientId, addressId, workerId) => {
+    try {
+        return await prisma.$transaction(async (tx) => {
+            const product = await crud.getOne("product", { product_id: productId }, tx);
             
-            totalOrderPrice += product.price * item.quantity;
-        }
+            if (!product) {
+                throw new MyError("Product not found", 404);
+            }
 
-        const finalPrice = Math.round(totalOrderPrice * (1 - discount / 100));
+            if (product.quantity < quantity) {
+                throw new MyError(`Insufficient stock for product ${product.product_name}. Available: ${product.quantity}`, 400);
+            }
 
-        const newOrder = await tx.orders.create({
-            data: {
+            const newQty = product.quantity - quantity;
+            await crud.update("product", 
+                { product_id: productId }, 
+                { 
+                    quantity: newQty,
+                    stock_status: newQty > 0 ? 'in stock' : 'out of stock'
+                }, 
+                tx
+            );
+
+            const orderPrice = product.price * quantity;
+            const newOrder = await crud.create("orders", {
                 client_id: clientId,
                 address_id: addressId,
                 worker_id: workerId,
-                order_price: finalPrice, 
-                status: 'confirmed', 
-                discount: discount,
-            },
-        });
-        
-        for (const item of items) {
-            await tx.order_item.create({
-                data: {
-                    order_id: newOrder.order_id,
-                    product_id: item.productId,
-                    quantity: item.quantity,
-                },
-            });
+                order_price: orderPrice,
+                status: 'processing',
+                order_item: {
+                    create: [{
+                        product_id: productId,
+                        quantity: quantity
+                    }]
+                }
+            }, tx);
 
-            await tx.product.update({
-                where: { product_id: item.productId },
-                data: {
-                    quantity: {
-                        decrement: item.quantity,
-                    },
-                },
-            });
-        }
-        
-         await tx.payment.create({
-             data: {
-                 order_id: newOrder.order_id,
-                 payment_method: 'online', 
-                 payment_status: 'paid', 
-                 price: finalPrice,
-                 payment_date: new Date(),
-             },
-         });
+            await crud.create("payment", {
+            order_id: newOrder.order_id,
+            payment_method: 'online', 
+            payment_status: 'not_paid',
+            price: orderPrice
+}, tx);
 
-        return tx.orders.findUnique({
-            where: { order_id: newOrder.order_id },
-            include: { 
-                order_item: { include: { product: true }},
-                payment: true,
-                client: true
-            },
+            return newOrder;
         });
-    }); 
-}
+    } catch (error) {
+        if (error instanceof MyError) throw error;
+        throw new MyError("Transaction failed: " + error.message, 500);
+    }
+};
+
+exports.getOrderDateLimits = async () => {
+    const result = await analyticsRepo.getFirstAndLastOrderDate();
+    if (!result || result.length === 0) {
+        throw new MyError("Order dates not found", 404);
+    }
+    return result[0];
+};
+
+exports.getRevenueStats = async () => {
+    const result = await analyticsRepo.calculateRevenueByPaymentMethod();
+    if (!result || result.length === 0) {
+        throw new MyError("Revenue analytics not found", 404);
+    }
+    return result.map(row => ({
+        method: row.payment_method,
+        revenue: parseFloat(row.revenue).toFixed(2)
+    }));
+};
