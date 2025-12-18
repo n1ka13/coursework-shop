@@ -76,6 +76,37 @@ npm test
 ```bash
 npx jest tests/file.test.js
 ```
+### Переглянути приклади в терміналі
+
+Запускаємо базу даних та додаток
+
+```bash
+docker-compose up --build
+```
+
+Створюємо таблиці в базі даних
+
+```bash
+npx prisma migrate dev --name init
+```
+
+Заповнюємо базу даних
+```
+node seed.js
+```
+
+Перевіряємо через curl
+
+```
+curl -X GET http://localhost:3000/api/orders/analytics/revenue-dynamics
+curl -X GET http://localhost:3000/api/products/analytics/categories
+curl -X GET http://localhost:3000/api/products/analytics/premium
+```
+або переглядаємо таблиці через Prisma Studio
+
+```
+npx prisma studio
+```
 
 #  Огляд структури проєкту
 - prisma/ — Схема бази даних (schema.prisma) та історія міграцій.
