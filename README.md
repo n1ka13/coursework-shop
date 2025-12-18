@@ -32,6 +32,8 @@ cd coursework-shop
 
 ```bash
 docker-compose up -d
+```
+
 Це запустить базу даних PostgreSQL на порті 5432.
 
 ### Встановіть залежності:
@@ -99,7 +101,11 @@ node seed.js
 
 ```
 curl -X GET http://localhost:3000/api/orders/analytics/revenue-dynamics
+```
+```
 curl -X GET http://localhost:3000/api/products/analytics/categories
+```
+```
 curl -X GET http://localhost:3000/api/products/analytics/premium
 ```
 або переглядаємо таблиці через Prisma Studio
